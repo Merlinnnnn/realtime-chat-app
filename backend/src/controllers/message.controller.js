@@ -11,7 +11,6 @@ export const getUsersForSideBar = async (req, res) => {
         res.status(500).json({error: "Internal server error"});
     }
 }
-
 export const getMessageById = async (req, res) => {
     try {
         const {id: userChatedTo} = req.params;
