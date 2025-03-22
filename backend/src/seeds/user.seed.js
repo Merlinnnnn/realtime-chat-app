@@ -1,6 +1,7 @@
 import { config } from "dotenv";
 import { connectDB } from "../lib/db.js";
 import User from "../models/user.model.js";
+import mongoose from "mongoose";
 
 config();
 
@@ -110,6 +111,15 @@ const seedDatabase = async () => {
     console.error("Error seeding database:", error);
   }
 };
+const updateUsers = async () => {
+  await mongoose.connect("mongodb+srv://buitriquangngai:OCA8vySFHH2hne27@cluster0.ii853.mongodb.net/chat_db?retryWrites=true&w=majority&appName=Cluster0");
+
+  await User.updateMany({}, { $set: { friends: [] } }, { strict: false });
+
+  console.log("Cập nhật dữ liệu thành công!");
+  mongoose.connection.close();
+};
 
 // Call the function
-seedDatabase();
+//seedDatabase();
+updateUsers();
