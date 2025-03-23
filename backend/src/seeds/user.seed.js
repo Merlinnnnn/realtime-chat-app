@@ -122,4 +122,4 @@ const updateUsers = async () => {
 
 // Call the function
 //seedDatabase();
-updateUsers();
+//updateUsers();

@@ -38,14 +38,16 @@ export const addFriend = async (req , res) =>{
 }
 
 export const changeStatus = async (req, res) => {
-    const {requestId, status} =req.body;
+    const { requestId, status } = req.body;
     try {
         const request = await Friendship.findById(requestId);
+
         if (!["accepted", "rejected"].includes(status)) {
             return res.status(400).json({ message: "Invalid status" });
         }
-        if(!request) {
-            return res.status(404).json({ message: "request not found" });
+
+        if (!request) {
+            return res.status(404).json({ message: "Request not found" });
         }
 
         if (request.status !== "pending") {
@@ -54,23 +56,25 @@ export const changeStatus = async (req, res) => {
 
         request.status = status;
         await request.save();
+
         if (status === "accepted") {
-            const sender = await User.findById(friendship.sender);
-            const receiver = await User.findById(friendship.receiver);
+            const sender = await User.findById(request.sender);
+            const receiver = await User.findById(request.receiver);
 
             if (!sender || !receiver) {
                 return res.status(404).json({ message: "User not found" });
             }
-
-            sender.friends.push(sender._id);
-            receiver.friends.push(receiver._id);
+            sender.friends.push(receiver._id);
+            receiver.friends.push(sender._id);
 
             await sender.save();
             await receiver.save();
-            res.status(200).json({ message: `Friend request ${status}` });
         }
+
+        return res.status(200).json({ message: `Friend request ${status}` });
     } catch (error) {
         console.error("Error at changing friend request status:", error);
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
-}
+};
+

@@ -31,6 +31,7 @@ export const signup = async (req, res) =>{
                 fullName: newUser.fullName,
                 email: newUser.email,
                 profilePic: newUser.profilePic,
+                friends: newUser.friends 
             })
         }
     } catch (error) {
@@ -55,6 +56,7 @@ export const login = async (req, res) => {
             fullName: user.fullName,
             email: user.email,
             profilePic: user.profilePic,
+            friends: user.friends,
         })
     } catch (error) {
         console.log("Login fail: ", error);
