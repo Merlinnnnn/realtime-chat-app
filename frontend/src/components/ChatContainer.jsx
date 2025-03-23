@@ -11,8 +11,10 @@ const ChatContainer = () => {
   const {
     messages,
     getMessages,
+    getMessagesGroup,
     isMessagesLoading,
     selectedUser,
+    selectedGroup,
     subscribeToMessages,
     unsubscribeFromMessages,
   } = useChatStore();
@@ -20,12 +22,20 @@ const ChatContainer = () => {
   const messageEndRef = useRef(null);
 
   useEffect(() => {
+    if (!selectedUser) return; // Kiểm tra trước khi gọi hàm
     getMessages(selectedUser._id);
-
     subscribeToMessages();
-
+  
     return () => unsubscribeFromMessages();
-  }, [selectedUser._id, getMessages, subscribeToMessages, unsubscribeFromMessages]);
+  }, [selectedUser, getMessages, subscribeToMessages, unsubscribeFromMessages]);
+  
+  useEffect(() => {
+    if (!selectedGroup) return; // Kiểm tra trước khi gọi hàm
+    getMessagesGroup(selectedGroup._id);
+    subscribeToMessages();
+  
+    return () => unsubscribeFromMessages();
+  }, [selectedGroup, getMessagesGroup, subscribeToMessages, unsubscribeFromMessages]);
 
   useEffect(() => {
     if (messageEndRef.current && messages) {
@@ -60,7 +70,7 @@ const ChatContainer = () => {
                   src={
                     message.senderId === authUser._id
                       ? authUser.profilePic || "/avatar.png"
-                      : selectedUser.profilePic || "/avatar.png"
+                      : selectedUser?.profilePic || "/avatar.png"
                   }
                   alt="profile pic"
                 />

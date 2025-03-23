@@ -3,8 +3,15 @@ import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 
 const ChatHeader = () => {
-  const { selectedUser, setSelectedUser } = useChatStore();
+  const { selectedUser, selectedGroup, setSelectedUser, setSelectedGroup } = useChatStore();
   const { onlineUsers } = useAuthStore();
+
+  // Nếu không có user hoặc group thì không hiển thị header
+  if (!selectedUser && !selectedGroup) return null;
+
+  // Nếu có selectedUser, hiển thị thông tin user
+  const isUser = !!selectedUser;
+  const chatTarget = isUser ? selectedUser : selectedGroup;
 
   return (
     <div className="p-2.5 border-b border-base-300">
@@ -13,25 +20,33 @@ const ChatHeader = () => {
           {/* Avatar */}
           <div className="avatar">
             <div className="size-10 rounded-full relative">
-              <img src={selectedUser.profilePic || "/avatar.png"} alt={selectedUser.fullName} />
+              <img 
+                src={chatTarget.profilePic || chatTarget.groupPic || "/avatar.png"} 
+                alt={chatTarget.fullName || chatTarget.name || "Chat"} 
+              />
             </div>
           </div>
 
-          {/* User info */}
+          {/* User hoặc Group info */}
           <div>
-            <h3 className="font-medium">{selectedUser.fullName}</h3>
-            <p className="text-sm text-base-content/70">
-              {onlineUsers.includes(selectedUser._id) ? "Online" : "Offline"}
-            </p>
+            <h3 className="font-medium">{chatTarget.fullName || chatTarget.name || "Unknown"}</h3>
+            {isUser ? (
+              <p className="text-sm text-base-content/70">
+                {chatTarget._id && onlineUsers.includes(chatTarget._id) ? "Online" : "Offline"}
+              </p>
+            ) : (
+              <p className="text-sm text-base-content/70">Group Chat</p>
+            )}
           </div>
         </div>
 
         {/* Close button */}
-        <button onClick={() => setSelectedUser(null)}>
+        <button onClick={() => isUser ? setSelectedUser(null) : setSelectedGroup(null)}>
           <X />
         </button>
       </div>
     </div>
   );
 };
+
 export default ChatHeader;

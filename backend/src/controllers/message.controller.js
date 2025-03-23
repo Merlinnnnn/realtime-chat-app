@@ -17,7 +17,17 @@ export const getUsersForSidebar = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+export const getGroupForSidebar = async (req, res) =>{
+  try {
+    const loggedInUserId = req.user._id;
+    const filteredGroups = await Group.find({members: loggedInUserId}).select("_id name img");
 
+    res.status(200).json(filteredGroups);
+  } catch (error) {
+    console.error("Error in getGroupForSidebar:", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
 export const getMessages = async (req, res) => {
   try {
     const { id: userToChatId } = req.params;
