@@ -2,16 +2,18 @@ import User from "../models/user.model.js";
 import Friendship from "../models/friendship.model.js";
 
 export const addFriend = async (req , res) =>{
-    const {senderId, receiverId} = req.body;
+    console.log("Add Friend Api");
+    const senderId = req.user._id; // Lấy từ middleware auth
+    const {receiverId} = req.body;
     try {
         const sender = await User.findById(senderId);
         const receiver = await User.findById(receiverId);
-        if(!sender && !receiver) {
+        if(!sender || !receiver) {
             return res.status(404).json({message: "User not found"});
         }
 
         if(sender.friends.includes(receiverId)) {
-            return res.status(400).json({message: "Alredy friends"})
+            return res.status(400).json({message: "Already friends"})
         }
 
         const existingRequest = await Friendship.findOne({
@@ -21,7 +23,7 @@ export const addFriend = async (req , res) =>{
         })
 
         if (existingRequest) {
-            return res.status(400).json({message: "Friend request already exits"});
+            return res.status(400).json({message: "Friend request already exists"});
         }
 
         await Friendship.create({
@@ -36,6 +38,21 @@ export const addFriend = async (req , res) =>{
         res.status(500).json({ error: error.message });
     }
 }
+
+export const getFriendRequests = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const requests = await Friendship.find({
+            receiver: userId,
+            status: "pending"
+        }).populate("sender", "fullName profilePic");
+        
+        res.status(200).json(requests);
+    } catch (error) {
+        console.error("Error getting friend requests:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
 
 export const changeStatus = async (req, res) => {
     const { requestId, status } = req.body;

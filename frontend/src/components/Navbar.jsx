@@ -1,9 +1,38 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
-import { LogOut, MessageSquare, Settings, User } from "lucide-react";
+import { useChatStore } from "../store/useChatStore";
+import { LogOut, MessageSquare, Settings, User, Bell } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import Notifications from "./Notifications";
 
 const Navbar = () => {
   const { logout, authUser } = useAuthStore();
+  const { friendRequests, getFriendRequests } = useChatStore();
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const notificationRef = useRef(null);
+
+  useEffect(() => {
+    // Load friend requests when component mounts
+    if (authUser) {
+      getFriendRequests();
+    }
+  }, [authUser, getFriendRequests]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setIsNotificationsOpen(false);
+      }
+    };
+
+    if (isNotificationsOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isNotificationsOpen]);
 
   return (
     <header
@@ -22,6 +51,24 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <div className="relative" ref={notificationRef}>
+              <button 
+                className="btn btn-sm gap-2 relative"
+                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+              >
+                <Bell className="w-4 h-4" />
+                <span className="hidden sm:inline">Notifications</span>
+                {friendRequests.length > 0 && (
+                  <span className="absolute -top-1 -right-1 badge badge-error badge-xs">
+                    {friendRequests.length}
+                  </span>
+                )}
+              </button>
+              <Notifications 
+                isOpen={isNotificationsOpen} 
+                onClose={() => setIsNotificationsOpen(false)} 
+              />
+            </div>
             <Link
               to={"/settings"}
               className={`
@@ -32,7 +79,6 @@ const Navbar = () => {
               <Settings className="w-4 h-4" />
               <span className="hidden sm:inline">Settings</span>
             </Link>
-
             {authUser && (
               <>
                 <Link to={"/profile"} className={`btn btn-sm gap-2`}>
