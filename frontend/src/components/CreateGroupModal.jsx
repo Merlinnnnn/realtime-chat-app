@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { X, Plus, Check } from "lucide-react";
-import { useChatStore } from "../store/useChatStore";
+import { useGroupStore } from "../store/useGroupStore";
+import { useFriendStore } from "../store/useFriendStore";
 import { useAuthStore } from "../store/useAuthStore";
 
 const CreateGroupModal = ({ isOpen, onClose }) => {
-  const { getFriends, friends, isFriendsLoading, createGroup } = useChatStore();
+  const { createGroup } = useGroupStore();
+  const { getFriends, friends, isFriendsLoading } = useFriendStore();
   const { authUser: user } = useAuthStore();
   
   const [groupName, setGroupName] = useState("");

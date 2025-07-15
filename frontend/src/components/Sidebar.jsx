@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
+import { useGroupStore } from "../store/useGroupStore";
+import { useFriendStore } from "../store/useFriendStore";
 import { useAuthStore } from "../store/useAuthStore";
+import { useUserStore } from "../store/useUserStore";
 import SidebarSkeleton from "./skeletons/SidebarSkeleton";
 import { Users, UsersRound, Plus, UserCheck, MoreVertical } from "lucide-react"; // Thêm UserCheck icon
 import React from "react";
@@ -8,7 +11,10 @@ import CreateGroupModal from "./CreateGroupModal";
 import GroupSettingsModal from "./GroupSettingsModal";
 
 const Sidebar = () => {
-  const { getUsers, users, selectedUser, setSelectedUser, selectedGroup, setSelectedGroup, isUsersLoading, getGroups, groups, setNull, checkFriendship, sendFriendRequest } = useChatStore();
+  const { getUsers, users = [], isUsersLoading } = useUserStore();
+  const { selectedUser, setSelectedUser } = useChatStore();
+  const { groups, getGroups,selectedGroup, setSelectedGroup } = useGroupStore();
+  const { sendFriendRequest, checkFriendship, friends } = useFriendStore();
   const { onlineUsers, authUser: currentUser } = useAuthStore();
   
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
@@ -23,8 +29,9 @@ const Sidebar = () => {
     getGroups();
   }, [getUsers, getGroups]);
   useEffect(() => {
-    setNull();
-  }, [activeTab]);
+    setSelectedUser(null);
+    setSelectedGroup(null);
+  }, [activeTab, setSelectedUser, setSelectedGroup]);
 
   useEffect(() => {
     // Kiểm tra tình bạn cho tất cả users (trừ bản thân)
@@ -39,12 +46,12 @@ const Sidebar = () => {
       );
       setFriendStatus(statusObj);
     };
-    if (users.length > 0 && currentUser?._id) fetchFriendStatus();
-  }, [users, currentUser, checkFriendship]);
+    if ((users && users.length > 0) && currentUser?._id) fetchFriendStatus();
+  }, [users, currentUser, checkFriendship, friends]);
 
-  const filteredUsers = showOnlineOnly
-    ? users.filter((user) => onlineUsers.includes(user._id))
-    : users;
+  const filteredUsers = (users || []).filter((user) =>
+    showOnlineOnly ? onlineUsers.includes(user._id) : true
+  );
 
   console.log("Filtered users:", filteredUsers.length);
   console.log("Current user ID:", currentUser?._id);

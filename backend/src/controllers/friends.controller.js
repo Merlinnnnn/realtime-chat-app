@@ -1,5 +1,6 @@
 import User from "../models/user.model.js";
 import Friendship from "../models/friendship.model.js";
+import { getReceiverSocketId, io } from "../lib/socket.js";
 
 export const addFriend = async (req , res) =>{
     console.log("Add Friend Api");
@@ -26,11 +27,21 @@ export const addFriend = async (req , res) =>{
             return res.status(400).json({message: "Friend request already exists"});
         }
 
-        await Friendship.create({
+        const newRequest = await Friendship.create({
             sender: senderId,
             receiver: receiverId,
             status: "pending", // "pending", "accepted", "rejected"
         });
+
+        // Emit socket cho receiver
+        const receiverSocketId = getReceiverSocketId(receiverId.toString());
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("newFriendRequest", {
+                _id: newRequest._id,
+                sender: { _id: sender._id, fullName: sender.fullName, profilePic: sender.profilePic },
+                status: newRequest.status
+            });
+        }
 
         res.status(200).json({ message: "Friend request sent" });
     } catch (error) {
@@ -86,6 +97,13 @@ export const changeStatus = async (req, res) => {
 
             await sender.save();
             await receiver.save();
+
+            // Emit socket cho cả sender và receiver
+            const senderSocketId = getReceiverSocketId(sender._id.toString());
+            const receiverSocketId = getReceiverSocketId(receiver._id.toString());
+            const notification = { message: `${receiver.fullName} accepted your friend request!` };
+            if (senderSocketId) io.to(senderSocketId).emit("newNotification", notification);
+            if (receiverSocketId) io.to(receiverSocketId).emit("newNotification", notification);
         }
 
         return res.status(200).json({ message: `Friend request ${status}` });

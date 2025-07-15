@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useChatStore } from "../store/useChatStore";
+import { useFriendStore } from "../store/useFriendStore";
 import { Check, X, UserPlus } from "lucide-react";
 
 const Notifications = ({ isOpen, onClose }) => {
@@ -8,7 +8,7 @@ const Notifications = ({ isOpen, onClose }) => {
     getFriendRequests, 
     respondToFriendRequest, 
     isFriendRequestsLoading 
-  } = useChatStore();
+  } = useFriendStore();
 
   useEffect(() => {
     if (isOpen) {

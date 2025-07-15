@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { X, Image, UserPlus, Check } from "lucide-react";
-import { useChatStore } from "../store/useChatStore";
+import { X, Image, UserPlus, Check, UploadCloud } from "lucide-react";
+import { useGroupStore } from "../store/useGroupStore";
+import { useFriendStore } from "../store/useFriendStore";
 import { useAuthStore } from "../store/useAuthStore";
 import toast from "react-hot-toast";
+import { axiosInstance } from "../lib/axios";
 
-const GroupSettingsModal = ({ isOpen, onClose, group }) => {
-  const { users, addGroupMember, getFriends, friends } = useChatStore();
+const GroupSettingsModal = ({ isOpen, onClose, group, onGroupUpdate }) => {
+  const { addGroupMember, updateGroup } = useGroupStore();
+  const { getFriends, friends } = useFriendStore();
   const { authUser: currentUser } = useAuthStore();
   
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUsersLoading, setIsUsersLoading] = useState(false);
+  const [isImageLoading, setIsImageLoading] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+  const fileInputRef = React.useRef(null);
 
   const isGroupCreator = group?.createdBy === currentUser?._id;
 
@@ -42,9 +48,39 @@ const GroupSettingsModal = ({ isOpen, onClose, group }) => {
     }
   };
 
-  const handleImageChange = () => {
-    // TODO: Implement change group image functionality
-    toast.info("Change group image functionality coming soon!");
+  // Hàm xử lý chọn ảnh
+  const handleImageClick = () => {
+    if (isGroupCreator && fileInputRef.current) {
+      fileInputRef.current.value = null; // reset input
+      fileInputRef.current.click();
+    }
+  };
+
+  // Hàm upload ảnh
+  const handleImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Hiển thị preview
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      setPreviewImage(ev.target.result);
+      setIsImageLoading(true);
+      try {
+        // Gửi base64 lên API
+        const res = await axiosInstance.put(
+          `/groups/${group._id}/image`,
+          { profilePic: ev.target.result }
+        );
+        toast.success("Group image updated!");
+        if (onGroupUpdate) onGroupUpdate(res.data);
+      } catch (err) {
+        toast.error("Failed to update group image");
+      } finally {
+        setIsImageLoading(false);
+        setPreviewImage(null);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   // Lọc ra những bạn bè chưa có trong group
@@ -67,49 +103,53 @@ const GroupSettingsModal = ({ isOpen, onClose, group }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-base-100 rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold">Group Settings</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-base-300 rounded-full"
+        {/* Group Name & Members - Centered */}
+        <div className="flex flex-col items-center mb-6">
+          <h2 className="text-2xl font-semibold text-center mb-1">{group.name}</h2>
+          <p className="text-sm text-base-content/70 text-center mb-4">{group.members?.length || 0} members</p>
+          {/* Avatar - Centered, Larger */}
+          <div
+            className="size-32 rounded-full overflow-hidden bg-base-200 border-2 border-base-300 flex items-center justify-center relative group cursor-pointer mb-2"
+            onClick={handleImageClick}
+            style={{ position: "relative" }}
           >
-            <X className="size-5" />
-          </button>
-        </div>
-
-        {/* Group Info */}
-        <div className="mb-6">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="size-20 rounded-full overflow-hidden bg-base-200 border-2 border-base-300 flex items-center justify-center">
-              <img
-                src={group.img || "/avatar.png"}
-                alt={group.name}
-                className="w-full h-full object-cover"
+            <img
+              src={
+                previewImage
+                  ? previewImage
+                  : group.profilePic || group.img || "/avatar.png"
+              }
+              alt={group.name}
+              className={`w-full h-full object-cover transition-opacity duration-200 ${
+                isImageLoading ? "opacity-50" : ""
+              }`}
+            />
+            {/* Overlay khi hover */}
+            {isGroupCreator && (
+              <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity duration-200">
+                <UploadCloud className="size-9 text-white mb-1" />
+                <span className="text-white text-base font-medium">Change Image</span>
+              </div>
+            )}
+            {/* Loading spinner */}
+            {isImageLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40">
+                <div className="loading loading-spinner loading-lg text-white"></div>
+              </div>
+            )}
+            {/* Input file ẩn */}
+            {isGroupCreator && (
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleImageChange}
+                disabled={isImageLoading}
               />
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg">{group.name}</h3>
-              <p className="text-sm text-base-content/70">
-                {group.members?.length || 0} members
-              </p>
-            </div>
+            )}
           </div>
         </div>
-
-        {/* Change Group Image Section */}
-        {isGroupCreator && (
-          <div className="mb-6">
-            <h4 className="font-medium mb-3">Group Image</h4>
-            <button
-              onClick={handleImageChange}
-              className="w-full p-3 border border-base-300 rounded-lg hover:bg-base-200 transition-colors flex items-center gap-3"
-              disabled={isLoading}
-            >
-              <Image className="size-5" />
-              <span>Change Group Image</span>
-            </button>
-          </div>
-        )}
 
         {/* Add Friends Section */}
         <div className="mb-6">

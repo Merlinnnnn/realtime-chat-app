@@ -1,47 +1,67 @@
 import { useChatStore } from "../store/useChatStore";
+import { useGroupStore } from "../store/useGroupStore";
+import { useAuthStore } from "../store/useAuthStore";
 import { useEffect, useRef } from "react";
 
 import ChatHeader from "./ChatHeader.jsx";
 import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
-import { useAuthStore } from "../store/useAuthStore";
 import { formatMessageTime } from "../lib/untils";
 
 const ChatContainer = () => {
   const {
     messages,
     getMessages,
-    getMessagesGroup,
     isMessagesLoading,
     selectedUser,
-    selectedGroup,
     subscribeToMessages,
     unsubscribeFromMessages,
   } = useChatStore();
-  const { authUser } = useAuthStore();
+
+  const {
+    selectedGroup,
+    getMessagesGroup,
+    messages: groupMessages,
+    setMessages,
+  } = useGroupStore();
+
+  const { authUser, socket } = useAuthStore();
   const messageEndRef = useRef(null);
 
   useEffect(() => {
-    if (!selectedUser) return; // Kiểm tra trước khi gọi hàm
+    if (!selectedUser) return;
     getMessages(selectedUser._id);
     subscribeToMessages();
-  
     return () => unsubscribeFromMessages();
   }, [selectedUser, getMessages, subscribeToMessages, unsubscribeFromMessages]);
-  
-  useEffect(() => {
-    if (!selectedGroup) return; // Kiểm tra trước khi gọi hàm
-    getMessagesGroup(selectedGroup._id);
-    subscribeToMessages();
-  
-    return () => unsubscribeFromMessages();
-  }, [selectedGroup, getMessagesGroup, subscribeToMessages, unsubscribeFromMessages]);
 
   useEffect(() => {
-    if (messageEndRef.current && messages) {
+    if (!selectedGroup) return;
+    getMessagesGroup(selectedGroup._id);
+  }, [selectedGroup, getMessagesGroup]);
+
+  // Lắng nghe socket realtime cho group
+  useEffect(() => {
+    if (!socket) return;
+    const handleNewGroupMessage = ({ groupId, message }) => {
+      console.log("FE received newGroupMessage", groupId, message);
+      if (selectedGroup && selectedGroup._id === groupId) {
+        setMessages([...(groupMessages || []), message]);
+      }
+    };
+    socket.on("newGroupMessage", handleNewGroupMessage);
+    return () => {
+      socket.off("newGroupMessage", handleNewGroupMessage);
+    };
+  }, [socket, selectedGroup, groupMessages, setMessages]);
+
+  useEffect(() => {
+    if (messageEndRef.current && (selectedGroup ? groupMessages : messages)) {
       messageEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [messages, groupMessages, selectedGroup]);
+
+  const displayMessages = selectedGroup ? groupMessages : messages;
 
   if (isMessagesLoading) {
     return (
@@ -56,9 +76,8 @@ const ChatContainer = () => {
   return (
     <div className="flex-1 flex flex-col overflow-auto">
       <ChatHeader />
-
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
+        {displayMessages.map((message) => (
           <div
             key={message._id}
             className={`chat ${message.senderId === authUser._id ? "chat-end" : "chat-start"}`}
@@ -94,7 +113,6 @@ const ChatContainer = () => {
           </div>
         ))}
       </div>
-
       <MessageInput />
     </div>
   );

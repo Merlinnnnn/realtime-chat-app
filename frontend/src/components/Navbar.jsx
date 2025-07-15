@@ -1,15 +1,38 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
-import { useChatStore } from "../store/useChatStore";
+import { useFriendStore } from "../store/useFriendStore";
 import { LogOut, MessageSquare, Settings, User, Bell } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import Notifications from "./Notifications";
+import toast from "react-hot-toast";
 
 const Navbar = () => {
   const { logout, authUser } = useAuthStore();
-  const { friendRequests, getFriendRequests } = useChatStore();
+  const { friendRequests, getFriendRequests, getFriends } = useFriendStore();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notificationRef = useRef(null);
+
+  // Lắng nghe socket cho notification và friend request
+  const { socket } = useAuthStore();
+  useEffect(() => {
+    if (!socket) return;
+    // Khi có lời mời kết bạn mới
+    const handleNewFriendRequest = () => {
+      getFriendRequests();
+      toast.success("Bạn có lời mời kết bạn mới!");
+    };
+    // Khi có thông báo mới (ví dụ: được chấp nhận kết bạn)
+    const handleNewNotification = (notification) => {
+      getFriends();
+      toast(notification.message || "Bạn có thông báo mới!");
+    };
+    socket.on("newFriendRequest", handleNewFriendRequest);
+    socket.on("newNotification", handleNewNotification);
+    return () => {
+      socket.off("newFriendRequest", handleNewFriendRequest);
+      socket.off("newNotification", handleNewNotification);
+    };
+  }, [socket, getFriendRequests, getFriends]);
 
   useEffect(() => {
     // Load friend requests when component mounts

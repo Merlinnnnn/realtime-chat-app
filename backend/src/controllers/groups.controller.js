@@ -1,6 +1,7 @@
 import User from "../models/user.model.js";
 import Group from "../models/group.model.js";
 import Friendship from "../models/friendship.model.js";
+import cloudinary from "../lib/cloudinary.js"; // Thêm dòng này ở đầu file nếu chưa có
 
 export const create = async (req , res) =>{
     const { name, members } = req.body;
@@ -123,4 +124,36 @@ export const addGroupMembers = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 }
+export const updateGroupImage = async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        const { profilePic } = req.body;
+        const userId = req.user._id;
 
+        // Kiểm tra group tồn tại
+        const group = await Group.findById(groupId);
+        if (!group) {
+            return res.status(404).json({ message: "Group not found" });
+        }
+
+        // Kiểm tra quyền: chỉ cho phép thành viên nhóm cập nhật ảnh
+        if (!group.members.includes(userId)) {
+            return res.status(403).json({ message: "You are not a member of this group" });
+        }
+
+        // Upload ảnh lên cloudinary
+        const uploadResponse = await cloudinary.uploader.upload(profilePic);
+
+        // Cập nhật ảnh đại diện nhóm (trường img)
+        group.img = uploadResponse.secure_url;
+        await group.save();
+
+        // Populate thông tin members nếu cần
+        await group.populate("members", "fullName profilePic");
+
+        res.status(200).json(group);
+    } catch (error) {
+        console.log("Update fail", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+};

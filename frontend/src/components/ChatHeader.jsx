@@ -1,9 +1,11 @@
 import { X } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
+import { useGroupStore } from "../store/useGroupStore";
 
 const ChatHeader = () => {
-  const { selectedUser, selectedGroup, setSelectedUser, setSelectedGroup } = useChatStore();
+  const { selectedUser, setSelectedUser } = useChatStore();
+  const { selectedGroup, setSelectedGroup } = useGroupStore();
   const { onlineUsers } = useAuthStore();
 
   // Nếu không có user hoặc group thì không hiển thị header
