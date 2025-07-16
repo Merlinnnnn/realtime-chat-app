@@ -24,8 +24,33 @@ io.on("connection", (socket) => {
   const userId = socket.handshake.query.userId;
   if (userId) userSocketMap[userId] = socket.id;
 
-  // io.emit() is used to send events to all the connected clients
+  // Emit online users
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
+
+  // Nhận tin nhắn nhóm và gửi tới các thành viên
+  socket.on("sendGroupMessage", ({ groupId, message, members }) => {
+    console.log("Backend received sendGroupMessage", { groupId, message, members, from: userId });
+    members.forEach(memberId => {
+      if (memberId !== userId && userSocketMap[memberId]) {
+        console.log("Emit newGroupMessage to", memberId, "socket", userSocketMap[memberId]);
+        io.to(userSocketMap[memberId]).emit("newGroupMessage", { groupId, message });
+      }
+    });
+  });
+
+  // Gửi lời mời kết bạn realtime
+  socket.on("sendFriendRequest", ({ receiverId, request }) => {
+    if (userSocketMap[receiverId]) {
+      io.to(userSocketMap[receiverId]).emit("newFriendRequest", request);
+    }
+  });
+
+  // Gửi thông báo (ví dụ: chấp nhận kết bạn)
+  socket.on("sendNotification", ({ receiverId, notification }) => {
+    if (userSocketMap[receiverId]) {
+      io.to(userSocketMap[receiverId]).emit("newNotification", notification);
+    }
+  });
 
   socket.on("disconnect", () => {
     console.log("A user disconnected", socket.id);
