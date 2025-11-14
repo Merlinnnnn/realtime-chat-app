@@ -1,12 +1,14 @@
-import { X } from "lucide-react";
+import { X, Phone } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 import { useGroupStore } from "../store/useGroupStore";
+import { useCallStore } from "../store/useCallStore";
 
 const ChatHeader = () => {
   const { selectedUser, setSelectedUser } = useChatStore();
   const { selectedGroup, setSelectedGroup } = useGroupStore();
   const { onlineUsers } = useAuthStore();
+  const { startCall } = useCallStore();
 
   // Nếu không có user hoặc group thì không hiển thị header
   if (!selectedUser && !selectedGroup) return null;
@@ -42,10 +44,23 @@ const ChatHeader = () => {
           </div>
         </div>
 
-        {/* Close button */}
-        <button onClick={() => isUser ? setSelectedUser(null) : setSelectedGroup(null)}>
-          <X />
-        </button>
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
+          {/* Call button - only show for 1-on-1 chats */}
+          {isUser && (
+            <button
+              onClick={() => startCall(selectedUser._id, "audio")}
+              className="btn btn-ghost btn-sm btn-circle"
+              title="Start audio call"
+            >
+              <Phone className="w-5 h-5" />
+            </button>
+          )}
+          {/* Close button */}
+          <button onClick={() => isUser ? setSelectedUser(null) : setSelectedGroup(null)}>
+            <X />
+          </button>
+        </div>
       </div>
     </div>
   );

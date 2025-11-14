@@ -52,6 +52,33 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Call functionality
+  socket.on("call-user", ({ userToCall, signalData, from, fromUserId, callType }) => {
+    const receiverSocketId = userSocketMap[userToCall];
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("incoming-call", {
+        from,
+        fromUserId,
+        signal: signalData,
+        callType,
+      });
+    }
+  });
+
+  socket.on("accept-call", ({ signal, to }) => {
+    io.to(to).emit("call-accepted", { signal, fromSocketId: socket.id });
+  });
+
+  socket.on("reject-call", ({ to }) => {
+    io.to(to).emit("call-rejected");
+  });
+
+  socket.on("end-call", ({ to }) => {
+    if (to) {
+      io.to(to).emit("call-ended");
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("A user disconnected", socket.id);
     delete userSocketMap[userId];
